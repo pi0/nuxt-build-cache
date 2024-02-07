@@ -1,6 +1,6 @@
 {
   "name": "nuxt-build-cache",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "experimental build cache module for Nuxt 3",
   "repository": "pi0/nuxt-build-cache",
   "license": "MIT",
