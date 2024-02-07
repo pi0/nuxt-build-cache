@@ -21,16 +21,6 @@ Experimental build caching for Nuxt.
 npx nuxi@latest modules add nuxt-build-cache
 ```
 
-<!-- ## Enabling for cloudflare pages
-
-Meanwhile pages does not have official Nuxt support, you can add this to your `package.json`:
-
-```json
-  "devDependencies": {
-    "next": "npm:just-a-placeholder@0.0.0"
-  },
-``` -->
-
 ## Environment variables
 
 - `SKIP_NUXT_BUILD_CACHE`
