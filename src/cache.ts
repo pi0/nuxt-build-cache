@@ -117,7 +117,7 @@ export async function collectBuildCache(nuxt: Nuxt) {
     patterns: ["**/*", "!analyze/**"],
   });
   const tarData = await createTar(fileEntries);
-  await _cfPagesHack(cacheDir);
+  await _cfPagesHack(nuxt.options.workspaceDir);
   await writeFile(cacheFile, tarData);
   consola.success(
     `Nuxt build cache collected in \`${
