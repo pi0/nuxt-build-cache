@@ -29,6 +29,7 @@
   },
   "dependencies": {
     "@nuxt/kit": "^3.10.1",
+    "consola": "^3.2.3",
     "nanotar": "^0.1.1",
     "nypm": "^0.3.6",
     "ohash": "^1.1.3",

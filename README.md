@@ -1,4 +1,4 @@
-# My Module
+# Nuxt Build Cache
 
 <!-- automd:badges -->
 
@@ -30,3 +30,8 @@ Meanwhile pages does not have official Nuxt support, you can add this to your `p
     "next": "npm:just-a-placeholder@0.0.0"
   },
 ``` -->
+
+## Environment variables
+
+- `SKIP_NUXT_BUILD_CACHE`
+- `SKIP_NUXT_BUILD_CACHE_COLLECTION`

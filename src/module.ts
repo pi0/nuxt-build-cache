@@ -1,42 +1,66 @@
-import { readdir, readFile, writeFile, mkdir } from "node:fs/promises";
+import { readdir, readFile, writeFile, mkdir, stat } from "node:fs/promises";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
+import { colorize } from "consola/utils";
 import { defineNuxtModule, useLogger } from "@nuxt/kit";
-import { createTar, parseTar } from "nanotar";
+import { createTar, parseTar, type TarFileInput } from "nanotar";
 import { hash, objectHash, murmurHash } from "ohash";
 import { detectPackageManager } from "nypm";
-import { readPackageJSON, findNearestFile } from "pkg-types";
+import { readPackageJSON, findNearestFile, writePackageJSON } from "pkg-types";
 import { provider, type ProviderName } from "std-env";
 
 const cacheDirs: Partial<Record<ProviderName | "default", string>> = {
-  default: "node_modules/.cache/nuxt/build",
+  default: "node_modules/.cache/nuxt/builds",
   cloudflare_pages: ".next/cache/nuxt",
 };
 
 export default defineNuxtModule({
-  setup(_, nuxt) {
-    if (nuxt.options._prepare || nuxt.options.dev) {
+  async setup(_, nuxt) {
+    if (
+      nuxt.options._prepare ||
+      nuxt.options.dev ||
+      process.env.SKIP_NUXT_BUILD_CACHE
+    ) {
       return;
     }
     const logger = useLogger("nuxt-build-cache");
 
-    // Setup hooks
-    nuxt.hook("build:done", () => {
-      collectBuildCache().catch((error) => {
-        logger.error("Failed to collect build cache:", error);
-      });
-    });
-    nuxt.hook("build:before", async () => {
-      const restored = await restoreBuildCache();
-      if (!restored) {
-        return;
-      }
-      nuxt.options.builder = {
-        bundle() {
-          logger.log("(skipping build)");
-          return Promise.resolve();
+    // Hack clouflare pages while Nuxt is not supported
+    if (provider === "cloudflare_pages") {
+      logger.log("!!!! patching pkg !!!");
+      const pkg = await readPackageJSON(nuxt.options.rootDir).catch(
+        () => undefined
+      );
+      await writePackageJSON(nuxt.options.rootDir, {
+        ...pkg,
+        devDependencies: {
+          ...pkg?.devDependencies,
+          next: "npm:just-a-placeholder@0.0.0",
         },
-      };
+      });
+    }
+
+    // Setup hooks
+    nuxt.hook("build:before", async () => {
+      // Try to restore
+      const restored = await restoreBuildCache();
+      if (restored) {
+        // Skip build since it's restored
+        nuxt.options.builder = {
+          bundle() {
+            logger.log("(skipping build)");
+            return Promise.resolve();
+          },
+        };
+      } else {
+        // Collect build cache this time
+        nuxt.hook("close", async () => {
+          if (process.env.SKIP_NUXT_BUILD_CACHE_COLLECTION) {
+            return;
+          }
+          await collectBuildCache();
+        });
+      }
     });
 
     // --- collect hashes from project ---
@@ -126,13 +150,17 @@ export default defineNuxtModule({
       logger.start(
         `Collecting nuxt build cache from \`${nuxt.options.buildDir}\`...`
       );
-      const fileEntries = await readFilesRecursive(nuxt.options.buildDir);
+      const fileEntries = await readFilesRecursive(
+        nuxt.options.buildDir,
+        (fileName) => fileName.startsWith("analyze/")
+      );
       const tarData = await createTar(fileEntries);
       await writeFile(cacheFile, tarData);
       logger.success(
         `Nuxt build cache collected in \`${
           Date.now() - start
-        }ms\` to \`${cacheDir}\``
+        }ms\` to \`${cacheDir}\`\n` +
+          colorize("gray", fileEntries.map((e) => `├─ ${e.name}`).join("\n"))
       );
     }
 
@@ -148,6 +176,12 @@ export default defineNuxtModule({
       const files = parseTar(await readFile(cacheFile));
       for (const file of files) {
         const filePath = join(nuxt.options.buildDir, file.name);
+        if (existsSync(filePath)) {
+          const stats = await stat(filePath);
+          if (stats.mtime.getTime() >= file.attrs?.mtime) {
+            // continue;
+          }
+        }
         await mkdir(join(filePath, ".."), { recursive: true });
         await writeFile(filePath, file.data, { mode: file.attrs?.mode });
       }
@@ -161,19 +195,36 @@ export default defineNuxtModule({
   },
 });
 
-async function readFilesRecursive(dir: string) {
-  const files = await readdir(dir, { recursive: true, withFileTypes: true });
-
+async function readFilesRecursive(
+  dir: string,
+  shouldIgnore?: (name: string) => boolean
+) {
+  const files = await readdir(dir, { recursive: true });
   const fileEntries = await Promise.all(
-    files.map(async (file) => {
-      if (!file.isFile()) {
-        return;
+    files.map(async (fileName) => {
+      try {
+        if (shouldIgnore?.(fileName)) {
+          return;
+        }
+        const filePath = join(dir, fileName);
+        const stats = await stat(filePath);
+        if (!stats?.isFile()) {
+          return;
+        }
+        const data = await readFile(filePath);
+        return <TarFileInput>{
+          name: fileName,
+          data,
+          attrs: {
+            mtime: stats.mtime.getTime(),
+          },
+        };
+      } catch (err) {
+        console.warn(
+          `[nuxt-build-cache] Failed to read file \`${fileName}\`:`,
+          err
+        );
       }
-      const data = await readFile(join(dir, file.name)).catch(() => undefined);
-      return {
-        name: file.name,
-        data,
-      };
     })
   );
 
