@@ -5,7 +5,7 @@ import { colorize } from "consola/utils";
 import { isIgnored } from "@nuxt/kit";
 import type { Nuxt } from "@nuxt/schema";
 import { createTar, parseTar } from "nanotar";
-import { hash, objectHash } from "ohash";
+import { hash, murmurHash, objectHash } from "ohash";
 import { consola, readFilesRecursive } from "./utils";
 import { provider, type ProviderName } from "std-env";
 
@@ -36,9 +36,17 @@ export async function getHashes(nuxt: Nuxt): Promise<Hashes> {
       data: objectHash(layer.config),
     });
 
+    const normalizeFiles = (
+      files: Awaited<ReturnType<typeof readFilesRecursive>>
+    ) =>
+      files.map((f) => ({
+        name: f.name,
+        size: (f.attrs as any)?.size,
+        data: murmurHash(f.data as any /* ArrayBuffer */),
+      }));
+
     const sourceFiles = await readFilesRecursive(layer.config?.srcDir, {
       shouldIgnore: isIgnored, // TODO: Validate if works with absolute paths
-      noData: true,
       patterns: [
         ...Object.values({
           ...nuxt.options.dir,
@@ -51,14 +59,13 @@ export async function getHashes(nuxt: Nuxt): Promise<Hashes> {
 
     hashSources.push({
       name: `${layerName}:src`,
-      data: sourceFiles,
+      data: normalizeFiles(sourceFiles),
     });
 
     const rootFiles = await readFilesRecursive(
       layer.config?.rootDir || layer.cwd,
       {
         shouldIgnore: isIgnored, // TODO: Validate if works with absolute paths
-        noData: true,
         patterns: [
           ".nuxtrc",
           ".npmrc",
@@ -74,7 +81,7 @@ export async function getHashes(nuxt: Nuxt): Promise<Hashes> {
 
     hashSources.push({
       name: `${layerName}:root`,
-      data: rootFiles,
+      data: normalizeFiles(rootFiles),
     });
   }
 

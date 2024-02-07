@@ -27,7 +27,7 @@ The hash is generated from all Nuxt layers (that are not in `node_modules`):
 - Known project root files (`package.json`, `.nuxtrc`, `.npmrc`, package manager lock-file, ...)
 
 > [!NOTE]
-> File hashes is based on their last modified time and size.
+> File hashes is based on their size and content digest (murmurHash v3)
 
 > [!NOTE]
 > Config layer hashes will be generated from the loaded value.
