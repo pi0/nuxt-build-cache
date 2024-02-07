@@ -18,6 +18,10 @@ const cacheDirs: Partial<Record<ProviderName, string>> & { default: string } = {
 };
 
 export async function getHashes(nuxt: Nuxt): Promise<Hashes> {
+  if ((nuxt as any)._buildHash) {
+    return (nuxt as any)._buildHash;
+  }
+
   const hashSources: HashSource[] = [];
 
   // Layers
@@ -74,10 +78,12 @@ export async function getHashes(nuxt: Nuxt): Promise<Hashes> {
     });
   }
 
-  return {
+  const res = ((nuxt as any)._buildHash = {
     hash: hash(hashSources),
     sources: hashSources,
-  };
+  });
+
+  return res;
 }
 
 export async function getCacheStore(nuxt: Nuxt) {
