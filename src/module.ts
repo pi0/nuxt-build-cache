@@ -1,7 +1,4 @@
-import { join } from "node:path";
 import { defineNuxtModule } from "@nuxt/kit";
-import { readPackageJSON, writePackageJSON } from "pkg-types";
-import { provider } from "std-env";
 import { consola } from "./utils";
 import { collectBuildCache, restoreBuildCache } from "./cache";
 
@@ -13,20 +10,6 @@ export default defineNuxtModule({
       process.env.NUXT_DISABLE_BUILD_CACHE
     ) {
       return;
-    }
-
-    // Hack clouflare pages while Nuxt is not supported
-    if (provider === "cloudflare_pages") {
-      const pkg = await readPackageJSON(nuxt.options.workspaceDir).catch(
-        () => undefined
-      );
-      await writePackageJSON(join(nuxt.options.workspaceDir, "package.json"), {
-        ...pkg,
-        devDependencies: {
-          ...pkg?.devDependencies,
-          next: "npm:just-a-placeholder@0.0.0",
-        },
-      });
     }
 
     // Setup hooks

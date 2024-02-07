@@ -117,6 +117,7 @@ export async function collectBuildCache(nuxt: Nuxt) {
     patterns: ["**/*", "!analyze/**"],
   });
   const tarData = await createTar(fileEntries);
+  await _cfPagesHack(cacheDir);
   await writeFile(cacheFile, tarData);
   consola.success(
     `Nuxt build cache collected in \`${
@@ -155,4 +156,19 @@ export async function restoreBuildCache(nuxt: Nuxt): Promise<boolean> {
     }\``
   );
   return true;
+}
+
+async function _cfPagesHack(dir: string) {
+  // Hack clouflare pages while Nuxt is not supported
+  if (provider === "cloudflare_pages") {
+    const { readPackageJSON, writePackageJSON } = await import("pkg-types");
+    const pkg = await readPackageJSON(dir).catch(() => undefined);
+    await writePackageJSON(join(dir, "package.json"), {
+      ...pkg,
+      devDependencies: {
+        ...pkg?.devDependencies,
+        next: "npm:just-a-placeholder@0.0.0",
+      },
+    });
+  }
 }
