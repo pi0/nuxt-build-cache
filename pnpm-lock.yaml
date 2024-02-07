@@ -11,6 +11,9 @@ dependencies:
   consola:
     specifier: ^3.2.3
     version: 3.2.3
+  globby:
+    specifier: ^14.0.0
+    version: 14.0.0
   nanotar:
     specifier: ^0.1.1
     version: 0.1.1
