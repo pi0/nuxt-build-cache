@@ -9,7 +9,7 @@ import { detectPackageManager } from "nypm";
 import { readPackageJSON, findNearestFile, writePackageJSON } from "pkg-types";
 import { provider, type ProviderName } from "std-env";
 
-const cacheDirs: Partial<Record<ProviderName | "default", string>> = {
+const cacheDirs: Partial<Record<ProviderName, string>> & { default: string } = {
   default: "node_modules/.cache/nuxt/builds",
   cloudflare_pages: ".next/cache/nuxt",
 };
@@ -94,7 +94,7 @@ export default defineNuxtModule({
       const pm = await detectPackageManager(nuxt.options.rootDir).catch(
         () => undefined
       );
-      if (pm) {
+      if (pm?.lockFile) {
         const lockfilePath = await findNearestFile(pm.lockFile, {
           startingFrom: nuxt.options.rootDir,
         }).catch(() => undefined);
@@ -178,12 +178,15 @@ export default defineNuxtModule({
         const filePath = join(nuxt.options.buildDir, file.name);
         if (existsSync(filePath)) {
           const stats = await stat(filePath);
-          if (stats.mtime.getTime() >= file.attrs?.mtime) {
-            // continue;
+          if (stats.mtime.getTime() >= (file.attrs?.mtime || 0)) {
+            logger.debug(
+              `Skipping \`${file.name}\` (up to date or newer than cache)`
+            );
+            continue;
           }
         }
         await mkdir(join(filePath, ".."), { recursive: true });
-        await writeFile(filePath, file.data, { mode: file.attrs?.mode });
+        await writeFile(filePath, file.data!, { mode: file.attrs?.mode });
       }
       logger.success(
         `Nuxt build cache restored in \`${Date.now() - start}ms\` into \`${
@@ -228,5 +231,5 @@ async function readFilesRecursive(
     })
   );
 
-  return fileEntries.filter(Boolean);
+  return fileEntries.filter(Boolean) as TarFileInput[];
 }
