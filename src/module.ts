@@ -27,11 +27,10 @@ export default defineNuxtModule({
 
     // Hack clouflare pages while Nuxt is not supported
     if (provider === "cloudflare_pages") {
-      logger.log("!!!! patching pkg !!!");
-      const pkg = await readPackageJSON(nuxt.options.rootDir).catch(
+      const pkg = await readPackageJSON(nuxt.options.workspaceDir).catch(
         () => undefined
       );
-      await writePackageJSON(nuxt.options.rootDir, {
+      await writePackageJSON(join(nuxt.options.workspaceDir, "package.json"), {
         ...pkg,
         devDependencies: {
           ...pkg?.devDependencies,
