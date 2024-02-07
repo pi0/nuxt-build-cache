@@ -2,6 +2,9 @@ import { readFile, stat } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { TarFileInput } from "nanotar";
 import { globby } from "globby";
+import _consola from "consola";
+
+export const consola = _consola.withTag("nuxt-build-cache");
 
 export type FileWithMeta = TarFileInput;
 
