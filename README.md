@@ -13,7 +13,7 @@ npx nuxi module add nuxt-build-cache
 
 By enabling this module, after a `nuxt build`, Nuxt collects build artifacts from `.nuxt/` dir into a tar file. On subsequent builds, if none of the relevant dependencies or your codes change, Nuxt will avoid the Vite/Webpack build step and simply restore the previous build results.
 
-This is particularly useful to speed up the CI/CD process when only prerendered content (from a CMS for example) or server routes are changed and can significantly speed up build speeds ([up to 53%!](https://twitter.com/_pi0_/status/1755333805349507100)). This is a similar feature [we introduced in Nuxt 2](https://nuxt.com/blog/nuxt-static-improvements).
+This is particularly useful to speed up the CI/CD process when only prerendered content (from a CMS for example) or server routes are changed and can significantly speed up build speeds ([up to 2x!](https://twitter.com/_pi0_/status/1755333805349507100)). This is a similar feature [we introduced in Nuxt 2](https://nuxt.com/blog/nuxt-static-improvements).
 
 ### How does the module determine if a new build is required?
 
